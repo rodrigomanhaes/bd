@@ -27,22 +27,27 @@ feature 'aprovar conteúdo' do
     artigo.arquivo.thumbnail_key.should == 'a dummy key'
   end
 
+  # TODO: cogitar escrita como teste de unidade de view
   scenario 'gestor de instituição não pode aprovar conteudo de outra instituição' do
     Papel.criar_todos
-    ins1 = Instituicao.create(nome: 'instituicao1')
-    camp1 = ins1.campi.create(nome: 'campus1')
-    ins2 = Instituicao.create(nome: 'instituicao2')
-    camp2 = ins2.campi.create(nome: 'campus2')
-    gestor = create(:usuario_gestor, campus: camp1)
+    campus1 = create(:campus)
+    campus2 = create(:campus, instituicao: campus1.instituicao)
+    campus_outro = create(:campus)
 
-    conteudo = create(:relatorio)
-    conteudo.campus_id= camp2.id
-    conteudo.submeter!
+    gestor1 = create(:usuario_gestor, campus: campus1)
+    gestor2 = create(:usuario_gestor, campus: campus2)
+    gestor_outro = create(:usuario_gestor, campus: campus_outro)
 
-    autenticar(gestor)
+    conteudo = create(:relatorio_pendente, campus: campus1)
 
+    [gestor1, gestor2].each do |gestor|
+      autenticar(gestor)
+      visit conteudo_path(conteudo)
+      page.should have_button 'Aprovar'
+    end
+    
+    autenticar(gestor_outro)
     visit conteudo_path(conteudo)
-    conteudo.aprovar
     page.should_not have_button 'Aprovar'
   end
 end
